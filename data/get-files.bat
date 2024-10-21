@@ -1,0 +1,11 @@
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary00.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary01.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary02.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary03.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary04.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary05.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary06.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary07.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary08.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/dictionary09.txt
+curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/suffix.txt
