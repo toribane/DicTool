@@ -4,14 +4,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.LinkedHashSet;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
+
 import jdbm.btree.BTree;
 import jdbm.helper.StringComparator;
 import jdbm.RecordManager;
@@ -21,88 +22,83 @@ public class GenDic {
     static String SYS_DIC_NAME = "system_dic";
     static String BTREE_NAME = "btree_dic";
 
-    static Set<String> setLex = new TreeSet<>();
-    static Set<String> setDic = new TreeSet<>();
+    static Map<String, ArrayList<Word>> map = new TreeMap<>();
 
     static void readLex(String filename) throws IOException {
+        System.err.println(filename);
         File file = new File(filename);
         FileInputStream fis = new FileInputStream(file);
         InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
         BufferedReader br = new BufferedReader(isr);
         String line;
         while ((line = br.readLine()) != null) {
-            setLex.add(line);
 
             String[] data = line.split("\\t");
             if (data.length != 5) {
                 continue;
             }
             String reading = data[0];
-            int cost = Integer.parseInt(data[3]) + 10000;
+            int id = Integer.parseInt(data[1]);
+            int id2 = Integer.parseInt(data[2]);
+            int cost = Integer.parseInt(data[3]);
             String surface = data[4];
-            // 読み、コスト、表記順にソートして保存
-            setDic.add(reading + "\t" + cost + "\t" + surface);
 
+            if (id != id2) {
+                continue;
+            }
+
+            ArrayList<Word> list = map.get(reading);
+            if (list == null) {
+                list = new ArrayList<>();
+                list.add(new Word(surface, id, cost));
+                map.put(reading, list);
+            } else {
+                ArrayList<Word> newList = new ArrayList<>();
+                for (Word word : list) {
+                    // 既にあるsurfaceとidでcostが高ければ捨てる
+                    if (word.surface.equals(surface) && word.id == id && word.cost > cost) {
+                        continue;
+                    }
+                    newList.add(word);
+                }
+                newList.add(new Word(surface, id, cost));
+                map.put(reading, newList);
+            }
         }
         br.close();
     }
 
     static void writeDic() throws IOException {
-
-        File f = new File(SYS_DIC_NAME + ".txt");
-        OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(f), "UTF-8");
-        BufferedWriter bw = new BufferedWriter(osw);
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                new File(SYS_DIC_NAME + ".txt")), "UTF-8"));
 
         Files.deleteIfExists(Paths.get(SYS_DIC_NAME + ".db"));
         Files.deleteIfExists(Paths.get(SYS_DIC_NAME + ".lg"));
 
-        Properties props = new Properties();
-        RecordManager recman = RecordManagerFactory.createRecordManager(SYS_DIC_NAME, props);
+        RecordManager recman = RecordManagerFactory.createRecordManager(SYS_DIC_NAME);
         BTree tree = BTree.createInstance(recman, new StringComparator());
-
         recman.setNamedObject(BTREE_NAME, tree.getRecid());
 
-        String key = "";
-        Set<String> values = new LinkedHashSet<>();
-        for (String line : setDic) {
-            String data[] = line.split("\t");
-            String reading = data[0];
-            int cost = Integer.parseInt(data[1]) + 10000;
-            String surface = data[2];
-
-            if (reading.equals(key)) {
-                values.add(surface);
-            } else {
-                if (values.size() > 0) {
-                    StringBuilder sb = new StringBuilder();
-                    for (String value : values) {
-                        if (sb.length() != 0) {
-                            sb.append("\t");
-                        }
-                        sb.append(value);
-                    }
-                    bw.write(key + "\t" + sb + "\n");
-                    tree.insert(key, sb.toString(), true);
-                }
-                key = reading;
-                values.clear();
-                values.add(surface);
-            }
-        }
-        // 
-        if (values.size() > 0) {
+        for (Map.Entry<String, ArrayList<Word>> entry : map.entrySet()) {
+            String reading = entry.getKey();
+            ArrayList<Word> words = entry.getValue();
+            // コストの低い順にソート
+            words.sort(Comparator.comparing(Word::getCost));
             StringBuilder sb = new StringBuilder();
-            for (String value : values) {
+            for (Word word : words) {
                 if (sb.length() != 0) {
                     sb.append("\t");
                 }
-                sb.append(value);
+                sb.append(word.toString());
             }
-            bw.write(key + "\t" + sb + "\n");
-            tree.insert(key, sb.toString(), true);
+            bw.write(reading + "\t" + sb.toString() + "\n");
+            tree.insert(reading, sb.toString(), true);
         }
+
         recman.commit();
         recman.close();
+
+        bw.flush();
         bw.close();
     }
 

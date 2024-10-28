@@ -1,2 +1,5 @@
 /bin
-/system_dic.*
+/*.bin
+/*.db
+/*.lg
+/*.txt
