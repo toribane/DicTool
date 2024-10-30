@@ -1,11 +1,14 @@
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -24,24 +27,34 @@ public class TestDic {
     static RecordManager recman;
     static BTree tree;
 
-    static short[][] connection;
+    static short numId;
+    static short[] connectionId;
 
     static void readConnection() throws Exception {
-        DataInputStream dis = new DataInputStream(new BufferedInputStream(
-                new FileInputStream("connection.bin")));
-        short dim = dis.readShort();
-        connection = new short[dim][dim];
-        for (int lid = 0; lid < dim; lid++) {
-            for (int rid = 0; rid < dim; rid++) {
-                connection[lid][rid] = dis.readShort();
-            }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        BufferedInputStream bis = new BufferedInputStream(
+                new FileInputStream("connection.bin"));
+        byte[] buf = new byte[4 * 1024];
+        int len;
+        while ((len = bis.read(buf, 0, buf.length)) > 0) {
+            baos.write(buf, 0, len);
         }
-        dis.close();
+        bis.close();
+
+        // byte[] byteArray = baos.toByteArray();
+        ShortBuffer sb = ByteBuffer.wrap(baos.toByteArray()).asShortBuffer();
+        numId = sb.get();
+        System.out.println("numId=" + numId);
+        connectionId = new short[numId * numId];
+        sb.get(connectionId);
+        System.out.println("connectionId[0]=" + connectionId[0]);
+        System.out.println("connectionId[1]=" + connectionId[1]);
+        System.out.println("connectionId[2]=" + connectionId[2]);
     }
 
     // ２つのノード間のエッジのコストを返す
     static int getEdgeCost(Node left, Node right) {
-        return connection[left.word.id][right.word.id];
+        return connectionId[left.word.id * numId + right.word.id];
     }
 
     // 辞書から語句を取得する

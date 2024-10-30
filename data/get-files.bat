@@ -11,3 +11,6 @@ curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data
 curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/suffix.txt
 curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/connection_single_column.txt
 curl -O https://raw.githubusercontent.com/google/mozc/refs/heads/master/src/data/dictionary_oss/id.def
+curl -O https://raw.githubusercontent.com/mtripg6666tdr/Kaomoji_proj/refs/heads/master/src/kaomoji.txt
+curl -O https://raw.githubusercontent.com/unicode-org/cldr/refs/heads/main/common/transforms/Japn-Latn.xml
+curl -O https://raw.githubusercontent.com/unicode-org/cldr/refs/heads/main/common/annotations/ja.xml
