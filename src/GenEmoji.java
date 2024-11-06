@@ -16,18 +16,47 @@ public class GenEmoji {
                 new File("data/emoji-test.txt")), "UTF-8"));
 
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
-                    new File("emoji.txt")), "UTF-8"));
-    
+                new File("emoji.txt")), "UTF-8"));
+
         String line;
         while ((line = br.readLine()) != null) {
             line = line.strip();
 
-            if (line.startsWith("# group: Component")) {
-                continue;
-            }
             if (line.startsWith("# group")) {
-                System.out.println(line);
-                bw.write(line + "\n");
+                String group = "";
+                switch (line) {
+                    case "# group: Component":
+                        continue;
+                    case "# group: Smileys & Emotion":
+                        group = "顔文字と感情";
+                        break;
+                    case "# group: People & Body":
+                        group = "人と体";
+                        break;
+                    case "# group: Animals & Nature":
+                        group = "動物と自然";
+                        break;
+                    case "# group: Food & Drink":
+                        group = "食べ物と飲み物";
+                        break;
+                    case "# group: Travel & Places":
+                        group = "旅行と場所";
+                        break;
+                    case "# group: Activities":
+                        group = "活動";
+                        break;
+                    case "# group: Objects":
+                        group = "物";
+                        break;
+                    case "# group: Symbols":
+                        group = "記号";
+                        break;
+                     case "# group: Flags":
+                        group = "旗";
+                        break;
+                }
+                System.out.println(line + " : " + group);
+                bw.write("# " + group + "\n");
                 continue;
             }
             if (line.startsWith("#")) {
@@ -68,11 +97,9 @@ public class GenEmoji {
             if (ss[0].contains("1F9B3")) {
                 continue;
             }
-            
+
             String[] ss2 = ss[1].strip().split(" ");
             bw.write(ss2[0] + "\n");
-
-            
 
         }
         bw.flush();
@@ -81,3 +108,4 @@ public class GenEmoji {
         br.close();
     }
 }
+// STW241113ACCE
