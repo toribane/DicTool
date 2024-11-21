@@ -33,37 +33,23 @@ public class GenDic {
         String line;
         while ((line = br.readLine()) != null) {
 
-            String[] data = line.split("\\t");
+            String[] data = line.split("\t");
             if (data.length != 5) {
                 continue;
             }
             String reading = data[0];
-            int id = Integer.parseInt(data[1]);
-            int id2 = Integer.parseInt(data[2]);
-            int cost = Integer.parseInt(data[3]);
+            short lid = Short.parseShort(data[1]);
+            short rid = Short.parseShort(data[2]);
+            short cost = Short.parseShort(data[3]);
             String surface = data[4];
-
-            if (id != id2) {
-                continue;
-            }
 
             ArrayList<Word> list = map.get(reading);
             if (list == null) {
                 list = new ArrayList<>();
-                list.add(new Word(surface, id, cost));
-                map.put(reading, list);
-            } else {
-                ArrayList<Word> newList = new ArrayList<>();
-                for (Word word : list) {
-                    // 既にあるsurfaceとidでcostが高ければ捨てる
-                    if (word.surface.equals(surface) && word.id == id && word.cost > cost) {
-                        continue;
-                    }
-                    newList.add(word);
-                }
-                newList.add(new Word(surface, id, cost));
-                map.put(reading, newList);
             }
+            list.add(new Word(cost, lid, rid, surface));
+            map.put(reading, list);
+
         }
         br.close();
     }
@@ -82,7 +68,7 @@ public class GenDic {
         for (Map.Entry<String, ArrayList<Word>> entry : map.entrySet()) {
             String reading = entry.getKey();
             ArrayList<Word> words = entry.getValue();
-            // コストの低い順にソート
+            // コストの低い順にソート(確認のためだけ)
             words.sort(Comparator.comparing(Word::getCost));
             StringBuilder sb = new StringBuilder();
             for (Word word : words) {
