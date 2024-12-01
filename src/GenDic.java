@@ -37,21 +37,71 @@ public class GenDic {
             if (data.length != 5) {
                 continue;
             }
-            String reading = data[0];
+            String reading = toHiragana(data[0]).strip();
             short lid = Short.parseShort(data[1]);
             short rid = Short.parseShort(data[2]);
             short cost = Short.parseShort(data[3]);
-            String surface = data[4];
+            String surface = data[4].strip();
 
-            ArrayList<Word> list = map.get(reading);
-            if (list == null) {
-                list = new ArrayList<>();
+            if (reading.length() == 0 || surface.length() == 0) {
+                continue;
             }
-            list.add(new Word(cost, lid, rid, surface));
-            map.put(reading, list);
 
+            if (!reading.matches("^[\\x21-\\x7E\\p{IsHiragana}\\p{IsKatakana}ー～\\p{IsHan}\\p{IsPunct}]+$")) {
+                // System.out.println(line);
+                continue;
+            }
+
+            if (isKanaOnly(reading) && isKanaOnly(surface)) {
+                if (!reading.equals(toHiragana(surface))) {
+                    // System.out.println(line);
+                    continue;
+                }
+            }
+
+            ArrayList<Word> oldList = map.get(reading);
+            if (oldList == null) {
+                ArrayList<Word> newList = new ArrayList<>();
+                newList.add(new Word(lid, rid, cost, surface));
+                map.put(reading, newList);
+            } else {
+                ArrayList<Word> newList = new ArrayList<>();
+                for (Word word : oldList) {
+                    if (word.lid == lid && word.rid == rid && word.surface.equals(surface)) {
+                        // cost以外は同じ
+                        // System.out.println(word + "\t" + cost);
+                        if (cost > word.cost) {
+                            cost = word.cost;
+                        }
+                        // このwordは保留
+                    } else {
+                        newList.add(word);
+                    }
+                }
+                newList.add(new Word(lid, rid, cost, surface));
+                map.put(reading, newList);
+            }
         }
         br.close();
+    }
+
+    static boolean isKanaOnly(String s) {
+        return s.matches("^[ぁ-ゖァ-ヶー]+$");
+    }
+
+    static char toHiragana(char c) {
+        if (c >= 'ァ' && c <= 'ヶ') {
+            return (char) (c - 'ァ' + 'ぁ');
+        }
+        return c;
+    }
+
+    static String toHiragana(CharSequence cs) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < cs.length(); i++) {
+            sb.append(toHiragana(cs.charAt(i)));
+        }
+        return sb.toString();
     }
 
     static void writeDic() throws IOException {
@@ -104,4 +154,46 @@ public class GenDic {
 
         writeDic();
     }
+
+    static class Word implements Comparable<Word> {
+
+        public short lid;
+        public short rid;
+        public short cost;
+        public String surface;
+
+        public Word(short lid, short rid, short cost, String surface) {
+            this.lid = lid;
+            this.rid = rid;
+            this.cost = cost;
+            this.surface = surface;
+        }
+
+        public Word(String s) {
+            String[] ss = s.split(",", 4);
+            this.lid = Short.parseShort(ss[0]);
+            this.rid = Short.parseShort(ss[1]);
+            this.cost = Short.parseShort(ss[2]);
+            this.surface = ss[3].strip();
+        }
+
+        @Override
+        public String toString() {
+            return lid + "," + rid + "," + cost + "," + surface;
+        }
+
+        public int getCost() {
+            return (int) cost;
+        }
+
+        @Override
+        public int compareTo(Word word) {
+            if (cost != word.cost) {
+                return (int) (cost - word.cost);
+            }
+            return surface.compareTo(word.surface);
+        }
+
+    }
+
 }
