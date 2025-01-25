@@ -1,5 +1,9 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -15,6 +19,8 @@ import java.util.TreeMap;
 
 import jdbm.btree.BTree;
 import jdbm.helper.StringComparator;
+import jdbm.helper.Tuple;
+import jdbm.helper.TupleBrowser;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
 
@@ -34,7 +40,7 @@ public class GenDic {
         while ((line = br.readLine()) != null) {
 
             String[] data = line.split("\t");
-            if (data.length != 5) {
+            if (data.length < 5) {
                 continue;
             }
             String reading = toHiragana(data[0]).strip();
@@ -47,15 +53,10 @@ public class GenDic {
                 continue;
             }
 
-            if (!reading.matches("^[\\x21-\\x7E\\p{IsHiragana}\\p{IsKatakana}ー～\\p{IsHan}\\p{IsPunct}]+$")) {
-                // System.out.println(line);
-                continue;
-            }
-
             if (isKanaOnly(reading) && isKanaOnly(surface)) {
                 if (!reading.equals(toHiragana(surface))) {
                     // System.out.println(line);
-                    continue;
+                    reading = toHiragana(surface);
                 }
             }
 
@@ -105,9 +106,6 @@ public class GenDic {
     }
 
     static void writeDic() throws IOException {
-        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
-                new File(SYS_DIC_NAME + ".txt")), "UTF-8"));
-
         Files.deleteIfExists(Paths.get(SYS_DIC_NAME + ".db"));
         Files.deleteIfExists(Paths.get(SYS_DIC_NAME + ".lg"));
 
@@ -120,19 +118,46 @@ public class GenDic {
             ArrayList<Word> words = entry.getValue();
             // コストの低い順にソート(確認のためだけ)
             words.sort(Comparator.comparing(Word::getCost));
-            StringBuilder sb = new StringBuilder();
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(baos);
             for (Word word : words) {
-                if (sb.length() != 0) {
-                    sb.append("\t");
-                }
-                sb.append(word.toString());
+                dos.writeShort(word.lid);
+                dos.writeShort(word.rid);
+                dos.writeShort(word.cost);
+                dos.writeUTF(word.surface);
             }
-            bw.write(reading + "\t" + sb.toString() + "\n");
-            tree.insert(reading, sb.toString(), true);
+            byte[] byteArray = baos.toByteArray();
+            tree.insert(reading, byteArray, true);
         }
 
         recman.commit();
         recman.close();
+    }
+
+    static void dumpDic() throws IOException {
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                new File(SYS_DIC_NAME + ".txt")), "UTF-8"));
+
+        RecordManager recman = RecordManagerFactory.createRecordManager(SYS_DIC_NAME);
+        BTree tree = BTree.load(recman, recman.getNamedObject(BTREE_NAME));
+
+        TupleBrowser browser = tree.browse();
+        Tuple tuple = new Tuple();
+
+        while (browser.getNext(tuple)) {
+            StringBuilder sb = new StringBuilder((String) tuple.getKey());
+            byte[] byteArray = (byte[]) tuple.getValue();
+            DataInputStream dis = new DataInputStream(new ByteArrayInputStream(byteArray));
+            while (dis.available() > 0) {
+                short lid = dis.readShort();
+                short rid = dis.readShort();
+                short cost = dis.readShort();
+                String surface = dis.readUTF();
+                sb.append("\t" + lid + "," + rid + "," + cost + "," + surface);
+            }
+            bw.write(sb.toString() + "\n");
+        }
 
         bw.flush();
         bw.close();
@@ -153,6 +178,7 @@ public class GenDic {
         readLex("./data/suffix.txt");
 
         writeDic();
+        dumpDic();
     }
 
     static class Word implements Comparable<Word> {
